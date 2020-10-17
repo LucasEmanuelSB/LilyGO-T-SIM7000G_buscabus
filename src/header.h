@@ -31,7 +31,7 @@ bool BLE_deviceConnected = false;
 bool sendJSONFlag = true;
 bool updateJSON = false;    // indicador de atualização do JSON
 const char server[] = "34.95.187.30";
-const char busId[] = "/api/buses/1";
+const char busId[] = "/api/buses/short/1";
 const char globalPosition[] = "/api/globalPositions/1";
 const int port = 80;
 const char apn[] = "zap.vivo.com.br";
@@ -39,6 +39,8 @@ const char gprsUser[] = "vivo";
 const char gprsPass[] = "vivo";
 const char *content_type = "application/json; charset=utf-8";
 String responseBody = "{}"; // resposta da requisicao GET http
+const int  capacity = 2048;
+
 String pieces[24], input;
 int counter, lastIndex, numberOfPieces = 24;
 
@@ -62,21 +64,22 @@ struct Bus
 {
     int id;
     int line;
-    int isAvailable;
+    bool isAvailable;
 };
 
 struct BusDriver
 {
     int id;
     String name;
-    double averageRate;
+    String averageRate; // nao é double para satisfazer a deserelizacao no cliente
 };
 
 struct Calendar
 {
     int id;
-    String *weeks;
-    String *weekendsHolidays;
+    String weeks[100];
+    String weekendsHolidays[100];
+
 };
 
 struct GlobalPosition

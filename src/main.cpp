@@ -34,8 +34,14 @@ void loop() {
     //setGPS(); // Recupera posição global atual
   }
   if(BLE_deviceConnected){ // Algum dispositivo se conectou a este ônibus (ESP32) ? Se sim, faça:
-    Serial.println("\n device connected...");
+    Serial.println("....");
     sendBusBLE();
-    delay(100);
+    delay(1000);
+    sendBusDriverBLE();
+    delay(1000);
+    sendCalendarBLE();
+    delay(1000);
+    //sendBusDriverBLE();
+    //sendCalendarBLE();
   }   
 }

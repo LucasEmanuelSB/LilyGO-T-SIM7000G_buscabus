@@ -11,7 +11,7 @@
 
 #define RXPin 3 // RX2
 #define TXPin 1 // TX2
-#define MAX_SIZE 600
+#define MAX_SIZE 100
 
 #define SerialAT Serial1
 #define UART_BAUD 9600
@@ -24,8 +24,8 @@
 #define TIME_TO_SLEEP 60          // Time ESP32 will go to sleep (in seconds)
 #define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID_BUS "beb5483e-36e1-4688-b7f5-ea07361b26a1"
-#define CHARACTERISTIC_UUID_BUS_DRIVER "beb5483e-36e1-4688-b7f5-ea07361b26a2"
-#define CHARACTERISTIC_UUID_CALENDAR "beb5483e-36e1-4688-b7f5-ea07361b26a3"
+/* #define CHARACTERISTIC_UUID_BUS_DRIVER "beb5483e-36e1-4688-b7f5-ea07361b26a2"
+#define CHARACTERISTIC_UUID_CALENDAR "beb5483e-36e1-4688-b7f5-ea07361b26a3" */
 bool LTE_M_Connected = false;
 bool BLE_deviceConnected = false;
 bool sendJSONFlag = true;
@@ -39,8 +39,8 @@ const char gprsUser[] = "vivo";
 const char gprsPass[] = "vivo";
 const char *content_type = "application/json; charset=utf-8";
 String responseBody = "{}"; // resposta da requisicao GET http
-const int capacity = 12480;
-
+const int capacity = 200;
+bool ready = false;
 String pieces[24], input;
 int counter, lastIndex, numberOfPieces = 24;
 
@@ -63,16 +63,20 @@ class MyServerCallbacks : public BLEServerCallbacks
     };
 };
 
+struct GlobalPosition
+{
+    int id;
+    float latitude;
+    float longitude;
+};
 struct Bus
 {
     int id;
     int line;
     bool isAvailable;
-    BusDriver busDriver;
-    Itinerary itinerary;
-    Calendar calendar;
-    GlobalPosition currentPosition;
 };
+/*
+
 
 struct BusDriver
 {
@@ -88,14 +92,9 @@ struct Calendar
     String weekendsHolidays[100];
 };
 
-struct GlobalPosition
-{
-    int id;
-    float latitude;
-    float longitude;
-};
 
-struct Itinerary
+
+/* struct Itinerary
 {
     int id;
     int busId;
@@ -128,10 +127,14 @@ struct Adress
     int globalPositionId;                        
 };
 
-Bus bus;
+
 BusDriver busDriver;
 Calendar calendar;
-GlobalPosition currentPosition;
+
+
 BLECharacteristic *pCharacteristic_Bus;
 BLECharacteristic *pCharacteristic_BusDriver;
-BLECharacteristic *pCharacteristic_Calendar;
+BLECharacteristic *pCharacteristic_Calendar; */
+Bus bus;
+BLECharacteristic *pCharacteristic;
+GlobalPosition currentPosition;

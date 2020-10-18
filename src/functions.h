@@ -29,6 +29,66 @@ void deserializableRequest();
 //void GPS_Timezone_Adjust();
 //void displayInfo();
 
+//callback para eventos das características
+class CharacteristicCallbacks : public BLECharacteristicCallbacks
+{
+  void onWrite(BLECharacteristic *characteristic)
+  {
+    //retorna ponteiro para o registrador contendo o valor atual da caracteristica
+    std::string rxValue = characteristic->getValue();
+    //verifica se existe dados (tamanho maior que zero)
+    if (rxValue.length() > 0)
+    {
+
+      for (int i = 0; i < rxValue.length(); i++)
+      {
+        Serial.print(rxValue[i]);
+      }
+      Serial.println();
+      if (rxValue.find("ready") != -1)
+      {
+        
+      }
+    }
+  } //onWrite
+};
+
+void sendJSON()
+{
+  Serial.println(responseBody.length());
+  int LOOP = responseBody.length() / MAX_SIZE;
+  for (int i = 0; i < LOOP; i++)
+  {
+    char auxBytes[MAX_SIZE + 1] = "";
+    for (int j = 0; j < MAX_SIZE; j++)
+    {
+      auxBytes[j] = responseBody[j + (MAX_SIZE * i)];
+    }
+
+    pCharacteristic->setValue(auxBytes); //Setting the json to the characteristic
+    pCharacteristic->notify();           //Notify the connected client
+    Serial.println(auxBytes);
+    delay(500);
+  }
+
+  int REST = responseBody.length() % MAX_SIZE;
+  if (REST != 0)
+  {
+    char auxBytes[REST + 1] = "";
+    for (int j = 0; j <= REST; j++)
+      auxBytes[j] = responseBody[j + (responseBody.length() - REST)];
+
+    pCharacteristic->setValue(auxBytes); //Setting the json to the characteristic
+    pCharacteristic->notify();           //Notify the connected client
+    Serial.println(auxBytes);
+    delay(500);
+  }
+
+  pCharacteristic->setValue("OK!");
+  pCharacteristic->notify();
+  delay(500);
+}
+
 void testGPRS()
 {
 
@@ -77,8 +137,7 @@ void testGPRS()
 
 void deserializableRequest()
 {
-
-  DynamicJsonDocument doc(capacity);
+  DynamicJsonDocument doc(12000);
   DeserializationError err = deserializeJson(doc, responseBody); // Realiza a deserialização do json e guarda resultado de erro se houver
 
   if (err)
@@ -90,8 +149,10 @@ void deserializableRequest()
   //Armazena os dados que serão úteis para identificação do onibus
   bus.id = doc["id"].as<int>();
   bus.line = doc["line"].as<int>();
+  Serial.print(bus.line);
   bus.isAvailable = doc["isAvailable"].as<bool>();
-
+}
+/*
   busDriver.id = doc["busDriver"]["id"].as<int>();
   busDriver.name = doc["busDriver"]["name"].as<String>();
   busDriver.averageRate = doc["busDriver"]["averageRate"].as<String>();
@@ -105,7 +166,7 @@ void deserializableRequest()
   JsonArray weekendsHolidays = doc["itinerary"]["calendar"]["weekendsHolidays"].as<JsonArray>();
   for (int i = 0; i < weekendsHolidays.size(); i++)
     calendar.weekendsHolidays[i] = weekendsHolidays[i].as<String>();
-}
+} */
 
 void configurateBLE()
 {
@@ -118,31 +179,11 @@ void configurateBLE()
   BLEServer *pServer = BLEDevice::createServer(); // Cria um Servidor BLE
   pServer->setCallbacks(new MyServerCallbacks()); // Define as funções de callback para o ajuste de conexões e desconexões
   Serial.println("Waiting for a client connection to notify ...");
-  BLEService *pService = pServer->createService(SERVICE_UUID); //Create the BLE Service
-
-  pCharacteristic_Bus = pService->createCharacteristic(CHARACTERISTIC_UUID_BUS,
-                                                       BLECharacteristic::PROPERTY_READ /*| 
-                                                   BLECharacteristic::PROPERTY_NOTIFY | 
-                                                  BLECharacteristic::PROPERTY_INDICATE */
-  );                                                                                    //BLE2902 needed to notify
-  //pCharacteristic_Bus->addDescriptor(new BLE2902()); // Add a Descriptor to the Characteristic
-
-  pCharacteristic_BusDriver = pService->createCharacteristic(CHARACTERISTIC_UUID_BUS_DRIVER,
-                                                             BLECharacteristic::PROPERTY_READ /* | 
-                                                  BLECharacteristic::PROPERTY_NOTIFY | 
-                                                  BLECharacteristic::PROPERTY_INDICATE */
-  );                                                                                          //BLE2902 needed to notify
-  //pCharacteristic_BusDriver->addDescriptor(new BLE2902()); // Add a Descriptor to the Characteristic
-
-  pCharacteristic_Calendar = pService->createCharacteristic(CHARACTERISTIC_UUID_CALENDAR,
-                                                            BLECharacteristic::PROPERTY_READ /* | 
-                                                  BLECharacteristic::PROPERTY_NOTIFY | 
-                                                  BLECharacteristic::PROPERTY_INDICATE */
-  );                                                                                         //BLE2902 needed to notify
-  pCharacteristic_Calendar->addDescriptor(new BLE2902());                                    // Add a Descriptor to the Characteristic
-
-  pServer->getAdvertising()->start(); //Start advertising
-  pService->start();                  //Start the Service
+  BLEService *pService = pServer->createService(SERVICE_UUID);                                                                                      //Create the BLE Service
+  pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID_BUS, BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ); //BLE2902 needed to notify
+  pCharacteristic->addDescriptor(new BLE2902());                                                                                                    // Add a Descriptor to the Characteristic
+  pServer->getAdvertising()->start();                                                                                                               //Start advertising
+  pService->start();                                                                                                                                //Start the Service                 //Start the Service
 }
 
 void configurate()
@@ -318,7 +359,7 @@ void httpPUTRequest()
   httpShowStatusCode();
 }
 
-void setValueBusBLE()
+/* void setValueBusBLE()
 {
   StaticJsonDocument<100> doc;
   doc["id"] = bus.id;
@@ -381,7 +422,7 @@ void setValueCharacteristcs()
   setValueBusBLE();
   setValueBusDriverBLE();
   setValueCalendarBLE();
-}
+} */
 
 void enableGPS()
 {

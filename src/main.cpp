@@ -39,8 +39,14 @@ void loop()
   }
   if (BLE_deviceConnected)
   { // Algum dispositivo se conectou a este ônibus (ESP32) ? Se sim, faça:
-    Serial.println("....");
-    setValueCharacteristcs();
-    
+    //Serial.println("....");
+    if (sendJSONFlag)
+    {
+      delay(6000);
+      sendJSON();
+      sendJSONFlag = false;
+    }
+
+    //setValueCharacteristcs();
   }
 }

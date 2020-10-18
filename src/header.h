@@ -29,9 +29,9 @@
 bool LTE_M_Connected = false;
 bool BLE_deviceConnected = false;
 bool sendJSONFlag = true;
-bool updateJSON = false;    // indicador de atualização do JSON
+bool updateJSON = false; // indicador de atualização do JSON
 const char server[] = "34.95.187.30";
-const char busId[] = "/api/buses/short/1";
+const char busId[] = "/api/buses/1";
 const char globalPosition[] = "/api/globalPositions/1";
 const int port = 80;
 const char apn[] = "zap.vivo.com.br";
@@ -39,7 +39,7 @@ const char gprsUser[] = "vivo";
 const char gprsPass[] = "vivo";
 const char *content_type = "application/json; charset=utf-8";
 String responseBody = "{}"; // resposta da requisicao GET http
-const int  capacity = 2048;
+const int capacity = 12480;
 
 String pieces[24], input;
 int counter, lastIndex, numberOfPieces = 24;
@@ -48,14 +48,17 @@ TinyGsm modem(SerialAT);
 TinyGsmClient client(modem);
 HttpClient http(client, server, port);
 
-class MyServerCallbacks : public BLEServerCallbacks{
-    
-    void onConnect(BLEServer *pServer){
+class MyServerCallbacks : public BLEServerCallbacks
+{
+
+    void onConnect(BLEServer *pServer)
+    {
         BLE_deviceConnected = true;
         sendJSONFlag = true;
     };
 
-    void onDisconnect(BLEServer *pServer){
+    void onDisconnect(BLEServer *pServer)
+    {
         BLE_deviceConnected = false;
     };
 };
@@ -65,6 +68,10 @@ struct Bus
     int id;
     int line;
     bool isAvailable;
+    BusDriver busDriver;
+    Itinerary itinerary;
+    Calendar calendar;
+    GlobalPosition currentPosition;
 };
 
 struct BusDriver
@@ -79,7 +86,6 @@ struct Calendar
     int id;
     String weeks[100];
     String weekendsHolidays[100];
-
 };
 
 struct GlobalPosition
@@ -87,6 +93,39 @@ struct GlobalPosition
     int id;
     float latitude;
     float longitude;
+};
+
+struct Itinerary
+{
+    int id;
+    int busId;
+    int routeId;
+    int calendarId;
+};
+
+struct Route
+{
+    int id;
+};
+
+struct BusStop
+{
+    int id;
+    bool isTerminal;
+    int adressId;
+};
+
+struct Adress
+{
+    int id;
+    String country;
+    String uf;
+    String city;
+    String neighborhood;
+    String street;
+    String cep;
+    String number;
+    int globalPositionId;                        
 };
 
 Bus bus;

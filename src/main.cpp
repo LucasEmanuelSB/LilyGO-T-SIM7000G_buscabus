@@ -6,7 +6,8 @@
 
 #include "functions.h"
 
-void setup() {
+void setup()
+{
   configurate();
   //initModem();
   restartModem();
@@ -24,24 +25,22 @@ void setup() {
   //configurateGPS();
 }
 
-void loop() {
-  
-  if(LTE_M_Connected){ // LTE-M está ligado?
-    if(updateJSON){
-      httpGETRequest();
+void loop()
+{
+
+  if (LTE_M_Connected)
+  { // LTE-M está ligado?
+    if (updateJSON)
+    {
+      httpGETRequest(); //Chama a função httpGETRequest, responsável pela requisição GET via protocolo http
       updateJSON = false;
     }
     //setGPS(); // Recupera posição global atual
   }
-  if(BLE_deviceConnected){ // Algum dispositivo se conectou a este ônibus (ESP32) ? Se sim, faça:
+  if (BLE_deviceConnected)
+  { // Algum dispositivo se conectou a este ônibus (ESP32) ? Se sim, faça:
     Serial.println("....");
-    sendBusBLE();
-    delay(1000);
-    sendBusDriverBLE();
-    delay(1000);
-    sendCalendarBLE();
-    delay(1000);
-    //sendBusDriverBLE();
-    //sendCalendarBLE();
-  }   
+    setValueCharacteristcs();
+    
+  }
 }

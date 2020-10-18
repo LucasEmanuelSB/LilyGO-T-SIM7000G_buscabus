@@ -20,7 +20,11 @@ void httpPUTRequest();
 void sendJSON();
 void httpShowStatusCode();
 void sendDataTest();
-void sendBusBLE();
+void setValueBusBLE();
+void setValueBusDriverBLE();
+void setValueCalendarBLE();
+void setValueCharacteristcs();
+void deserializableRequest();
 //void configurateGPS();
 //void GPS_Timezone_Adjust();
 //void displayInfo();
@@ -314,7 +318,7 @@ void httpPUTRequest()
   httpShowStatusCode();
 }
 
-void sendBusBLE()
+void setValueBusBLE()
 {
   StaticJsonDocument<100> doc;
   doc["id"] = bus.id;
@@ -322,14 +326,12 @@ void sendBusBLE()
   doc["isAvailable"] = bus.isAvailable;
   char jsonChar[100];
   serializeJson(doc, jsonChar);
-
-  Serial.println(jsonChar);
   pCharacteristic_Bus->setValue(jsonChar);
+  Serial.println(jsonChar);
   //pCharacteristic_Bus->notify();
-  delay(100);
 }
 
-void sendBusDriverBLE()
+void setValueBusDriverBLE()
 {
   StaticJsonDocument<100> doc;
   doc["id"] = busDriver.id;
@@ -338,13 +340,12 @@ void sendBusDriverBLE()
   char jsonChar[100];
   serializeJson(doc, jsonChar);
 
-  Serial.println(jsonChar);
   pCharacteristic_BusDriver->setValue(jsonChar);
+  Serial.println(jsonChar);
   //pCharacteristic_BusDriver->notify();
-  delay(100);
 }
 
-void sendCalendarBLE()
+void setValueCalendarBLE()
 {
 
   StaticJsonDocument<1024> doc;
@@ -369,11 +370,17 @@ void sendCalendarBLE()
 
   char jsonChar[1024];
   serializeJson(obj, jsonChar);
-  Serial.println(jsonChar);
 
   pCharacteristic_Calendar->setValue(jsonChar);
+  Serial.println(jsonChar);
   //pCharacteristic_Calendar->notify();
-  delay(100);
+}
+
+void setValueCharacteristcs()
+{
+  setValueBusBLE();
+  setValueBusDriverBLE();
+  setValueCalendarBLE();
 }
 
 void enableGPS()

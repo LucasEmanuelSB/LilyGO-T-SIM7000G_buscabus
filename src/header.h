@@ -40,7 +40,9 @@ const char gprsPass[] = "vivo";
 const char *content_type = "application/json; charset=utf-8";
 String responseBody = "{}"; // resposta da requisicao GET http
 const int capacity = 200;
+bool isGPSEnable = false;
 bool ready = false;
+StaticJsonDocument<50> docGPS;
 String pieces[24], input;
 int counter, lastIndex, numberOfPieces = 24;
 

@@ -2,7 +2,7 @@
 
 void enableGPS();
 void disableGPS();
-void setGPS();
+void getGPS();
 void connectLTE_M();
 void disconnectLTE_M();
 void powerOFFModem();
@@ -335,19 +335,20 @@ void httpGETRequest()
 
   Serial.print(F("Body length is: "));
   Serial.println(responseBody.length());
+
+  httpDisconnect();
 }
 
 void httpPUTRequest()
 {
-
-  StaticJsonDocument<200> doc;
-  doc["latitude"] = currentPosition.latitude;
-  doc["longitude"] = currentPosition.longitude;
+  docGPS["latitude"] = currentPosition.latitude;
+  docGPS["longitude"] = currentPosition.longitude;
   // Convert the document to an object
   String json;
-  serializeJson(doc, json);
+  serializeJson(docGPS, json);
 
   Serial.print(F("Performing HTTP PUT request... "));
+  Serial.println(json);
   int err = http.put(globalPosition, content_type, json);
   if (err != 0)
   {
@@ -355,8 +356,8 @@ void httpPUTRequest()
     delay(10000);
     return;
   }
-
-  httpShowStatusCode();
+  //httpShowStatusCode();
+  httpDisconnect();
 }
 
 /* void setValueBusBLE()
@@ -428,15 +429,17 @@ void enableGPS()
 {
   modem.sendAT("+SGPIO=0,4,1,1"); //Set SIM7000G GPIO4 HIGH ,turn on GPS power where CMD:AT+SGPIO=0,4,1,1
   modem.enableGPS();
+  isGPSEnable = true;
 }
 
 void disableGPS()
 {
   modem.disableGPS(); // Set SIM7000G GPIO4 LOW ,turn off GPS power where CMD:AT+SGPIO=0,4,1,0
   modem.sendAT("+SGPIO=0,4,1,0");
+  isGPSEnable = false;
 }
 
-void setGPS()
+void getGPS()
 {
 
   if (modem.getGPS(&currentPosition.latitude, &currentPosition.longitude))
@@ -449,7 +452,6 @@ void setGPS()
     Serial.print("getGPS ");
     Serial.println(millis());
   }
-  delay(1000); // 1 seg
 
   //Conexao com modulo GPS
   //  while (Serial_GPS.available() > 0)

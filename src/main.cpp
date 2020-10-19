@@ -20,9 +20,9 @@ void setup()
   testGPRS();
   httpGETRequest(); //Chama a função httpGETRequest, responsável pela requisição GET via protocolo http
   deserializableRequest();
+  enableGPS();
+  getGPS();
   configurateBLE();
-  //enableGPS();
-  //configurateGPS();
 }
 
 void loop()
@@ -30,12 +30,18 @@ void loop()
 
   if (LTE_M_Connected)
   { // LTE-M está ligado?
+    if (isGPSEnable)
+    {
+      getGPS();
+      delay(10);
+    }
     if (updateJSON)
     {
-      httpGETRequest(); //Chama a função httpGETRequest, responsável pela requisição GET via protocolo http
       updateJSON = false;
+      httpGETRequest(); //Chama a função httpGETRequest, responsável pela requisição GET via protocolo http
+      delay(800);
     }
-    //setGPS(); // Recupera posição global atual
+    //getGPS(); // Recupera posição global atual
   }
   if (BLE_deviceConnected)
   { // Algum dispositivo se conectou a este ônibus (ESP32) ? Se sim, faça:

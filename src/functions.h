@@ -17,7 +17,8 @@ void configurate();
 void testGPRS();
 void httpGETRequest();
 void httpPUTRequest();
-void sendJSON();
+void 
+Bus();
 void httpShowStatusCode();
 void sendDataTest();
 void setValueBusBLE();
@@ -25,35 +26,9 @@ void setValueBusDriverBLE();
 void setValueCalendarBLE();
 void setValueCharacteristcs();
 void deserializableRequest();
-//void configurateGPS();
-//void GPS_Timezone_Adjust();
-//void displayInfo();
+void setUrlGlobalPosition();
 
-//callback para eventos das características
-class CharacteristicCallbacks : public BLECharacteristicCallbacks
-{
-  void onWrite(BLECharacteristic *characteristic)
-  {
-    //retorna ponteiro para o registrador contendo o valor atual da caracteristica
-    std::string rxValue = characteristic->getValue();
-    //verifica se existe dados (tamanho maior que zero)
-    if (rxValue.length() > 0)
-    {
-
-      for (int i = 0; i < rxValue.length(); i++)
-      {
-        Serial.print(rxValue[i]);
-      }
-      Serial.println();
-      if (rxValue.find("ready") != -1)
-      {
-        
-      }
-    }
-  } //onWrite
-};
-
-void sendJSON()
+void sendJSONBus()
 {
   Serial.println(responseBody.length());
   int LOOP = responseBody.length() / MAX_SIZE;
@@ -65,8 +40,8 @@ void sendJSON()
       auxBytes[j] = responseBody[j + (MAX_SIZE * i)];
     }
 
-    pCharacteristic->setValue(auxBytes); //Setting the json to the characteristic
-    pCharacteristic->notify();           //Notify the connected client
+    pCharacteristic_RX->setValue(auxBytes); //Setting the json to the characteristic
+    pCharacteristic_RX->notify();           //Notify the connected client
     Serial.println(auxBytes);
     delay(500);
   }
@@ -78,15 +53,68 @@ void sendJSON()
     for (int j = 0; j <= REST; j++)
       auxBytes[j] = responseBody[j + (responseBody.length() - REST)];
 
-    pCharacteristic->setValue(auxBytes); //Setting the json to the characteristic
-    pCharacteristic->notify();           //Notify the connected client
+    pCharacteristic_RX->setValue(auxBytes); //Setting the json to the characteristic
+    pCharacteristic_RX->notify();           //Notify the connected client
     Serial.println(auxBytes);
     delay(500);
   }
 
-  pCharacteristic->setValue("OK!");
-  pCharacteristic->notify();
+  pCharacteristic_RX->setValue("OK!");
+  pCharacteristic_RX->notify();
   delay(500);
+}
+
+/* double calculateVelocity(){
+
+  if(((p2.latitude ?? 0) == 0) || ((p2.longitude ?? 0) == 0))
+    return 0;
+  else if(((p2.timestamp ?? 0) == 0))
+    return 0;
+    
+  double distance = distanceOnGeoid(p1.latitude, p1.longitude, p2.latitude,p2.longitude);
+  double time = differenceTimestamp(p1.timestamp,p2.timestamp);
+  double speed_mps = distance / time ;
+  return speed_mps;
+  //double speed_kph = (speed_mps * 3600.0) / 1000.0;
+  //return speed_kph;
+} */
+
+double differenceTimestamp(double timestamp1, double timestamp2){
+  return (timestamp2 - timestamp1);
+}
+
+double distanceOnGeoid(double lat1, double lon1, double lat2, double lon2) {
+ 
+	// Convert degrees to radians
+	lat1 = lat1 * M_PI / 180.0;
+	lon1 = lon1 * M_PI / 180.0;
+ 
+	lat2 = lat2 * M_PI / 180.0;
+	lon2 = lon2 * M_PI / 180.0;
+ 
+	// radius of earth in metres
+	double r = 6378100;
+ 
+	// P
+	double rho1 = r * cos(lat1);
+	double z1 = r * sin(lat1);
+	double x1 = rho1 * cos(lon1);
+	double y1 = rho1 * sin(lon1);
+ 
+	// Q
+	double rho2 = r * cos(lat2);
+	double z2 = r * sin(lat2);
+	double x2 = rho2 * cos(lon2);
+	double y2 = rho2 * sin(lon2);
+ 
+	// Dot product
+	double dot = (x1 * x2 + y1 * y2 + z1 * z2);
+	double cos_theta = dot / (r * r);
+ 
+	double theta = acos(cos_theta);
+ 
+	// Distance in Metres
+	return r * theta;
 }
 
 void testGPRS()
@@ -151,22 +179,9 @@ void deserializableRequest()
   bus.line = doc["line"].as<int>();
   Serial.print(bus.line);
   bus.isAvailable = doc["isAvailable"].as<bool>();
+
+  currentPosition.id = doc["currentPosition"]["id"].as<int>();
 }
-/*
-  busDriver.id = doc["busDriver"]["id"].as<int>();
-  busDriver.name = doc["busDriver"]["name"].as<String>();
-  busDriver.averageRate = doc["busDriver"]["averageRate"].as<String>();
-
-  calendar.id = doc["itinerary"]["calendar"]["id"].as<int>();
-
-  JsonArray weeks = doc["itinerary"]["calendar"]["weeks"].as<JsonArray>();
-  for (int i = 0; i < weeks.size(); i++)
-    calendar.weeks[i] = weeks[i].as<String>();
-
-  JsonArray weekendsHolidays = doc["itinerary"]["calendar"]["weekendsHolidays"].as<JsonArray>();
-  for (int i = 0; i < weekendsHolidays.size(); i++)
-    calendar.weekendsHolidays[i] = weekendsHolidays[i].as<String>();
-} */
 
 void configurateBLE()
 {
@@ -180,8 +195,10 @@ void configurateBLE()
   pServer->setCallbacks(new MyServerCallbacks()); // Define as funções de callback para o ajuste de conexões e desconexões
   Serial.println("Waiting for a client connection to notify ...");
   BLEService *pService = pServer->createService(SERVICE_UUID);                                                                                      //Create the BLE Service
-  pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID_BUS, BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ); //BLE2902 needed to notify
-  pCharacteristic->addDescriptor(new BLE2902());                                                                                                    // Add a Descriptor to the Characteristic
+  pCharacteristic_RX = pService->createCharacteristic(CHARACTERISTIC_UUID_RX, BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ); //BLE2902 needed to notify
+  pCharacteristic_RX->addDescriptor(new BLE2902());                                                                                                    // Add a Descriptor to the Characteristic
+  pCharacteristic_TX_LAT = pService->createCharacteristic(CHARACTERISTIC_UUID_LAT, BLECharacteristic::PROPERTY_WRITE);
+  pCharacteristic_TX_LONG = pService->createCharacteristic(CHARACTERISTIC_UUID_LONG, BLECharacteristic::PROPERTY_WRITE);
   pServer->getAdvertising()->start();                                                                                                               //Start advertising
   pService->start();                                                                                                                                //Start the Service                 //Start the Service
 }
@@ -339,6 +356,15 @@ void httpGETRequest()
   httpDisconnect();
 }
 
+void setUrlGlobalPosition(){
+  strcpy(urlPUTRequest,urlGlobalPosition);
+  Serial.print("current-Position-id: ");
+  Serial.println(currentPosition.id);
+  char id[10];
+  sprintf(id,"%d",currentPosition.id);
+  strcat(urlPUTRequest,id);
+}
+
 void httpPUTRequest()
 {
   docGPS["latitude"] = currentPosition.latitude;
@@ -349,7 +375,7 @@ void httpPUTRequest()
 
   Serial.print(F("Performing HTTP PUT request... "));
   Serial.println(json);
-  int err = http.put(globalPosition, content_type, json);
+  int err = http.put(urlPUTRequest, content_type, json);
   if (err != 0)
   {
     Serial.println(F("failed to connect"));
@@ -360,97 +386,53 @@ void httpPUTRequest()
   httpDisconnect();
 }
 
-/* void setValueBusBLE()
-{
-  StaticJsonDocument<100> doc;
-  doc["id"] = bus.id;
-  doc["line"] = bus.line;
-  doc["isAvailable"] = bus.isAvailable;
-  char jsonChar[100];
-  serializeJson(doc, jsonChar);
-  pCharacteristic_Bus->setValue(jsonChar);
-  Serial.println(jsonChar);
-  //pCharacteristic_Bus->notify();
-}
-
-void setValueBusDriverBLE()
-{
-  StaticJsonDocument<100> doc;
-  doc["id"] = busDriver.id;
-  doc["name"] = busDriver.name;
-  doc["averageRate"] = busDriver.averageRate;
-  char jsonChar[100];
-  serializeJson(doc, jsonChar);
-
-  pCharacteristic_BusDriver->setValue(jsonChar);
-  Serial.println(jsonChar);
-  //pCharacteristic_BusDriver->notify();
-}
-
-void setValueCalendarBLE()
-{
-
-  StaticJsonDocument<1024> doc;
-  JsonObject obj = doc.to<JsonObject>();
-  obj["id"] = calendar.id;
-
-  JsonArray weeks = obj.createNestedArray("weeks");
-  int i = 0;
-  while (calendar.weeks[i] != "\0")
-  {
-    weeks.add(calendar.weeks[i]);
-    i++;
-  }
-
-  JsonArray weekendsHolidays = obj.createNestedArray("weekendsHolidays");
-  i = 0;
-  while (calendar.weekendsHolidays[i] != "\0")
-  {
-    weekendsHolidays.add(calendar.weekendsHolidays[i]);
-    i++;
-  }
-
-  char jsonChar[1024];
-  serializeJson(obj, jsonChar);
-
-  pCharacteristic_Calendar->setValue(jsonChar);
-  Serial.println(jsonChar);
-  //pCharacteristic_Calendar->notify();
-}
-
-void setValueCharacteristcs()
-{
-  setValueBusBLE();
-  setValueBusDriverBLE();
-  setValueCalendarBLE();
-} */
-
 void enableGPS()
 {
   modem.sendAT("+SGPIO=0,4,1,1"); //Set SIM7000G GPIO4 HIGH ,turn on GPS power where CMD:AT+SGPIO=0,4,1,1
   modem.enableGPS();
-  isGPSEnable = true;
+  isGPS_ON = true;
 }
 
 void disableGPS()
 {
   modem.disableGPS(); // Set SIM7000G GPIO4 LOW ,turn off GPS power where CMD:AT+SGPIO=0,4,1,0
   modem.sendAT("+SGPIO=0,4,1,0");
-  isGPSEnable = false;
+  isGPS_ON = false;
+}
+
+void savePoints(){
+    p2.latitude = p1.latitude;
+    p2.longitude = p1.longitude;
+    p2.timestamp = p1.timestamp;
+
+    p1.latitude = currentPosition.latitude;
+    p1.longitude = currentPosition.longitude;
+    p1.timestamp = currentPosition.timestamp;
+}
+
+bool checkDeviceCoordinates(){
+  if((sendLAT && sendLONG) == true)
+    return true;
+  else 
+    return false;
 }
 
 void getGPS()
 {
-
+  
   if (modem.getGPS(&currentPosition.latitude, &currentPosition.longitude))
   { // Se há latitude e longitude, faça:
+    gettimeofday(&currentPosition.timestamp,NULL);
     Serial.printf("latitude:%f longitude:%f\n", currentPosition.latitude, currentPosition.longitude);
     httpPUTRequest();
+    isGPSEnable = true;
+    //savePoints();
   }
   else
   { // Se não, espere:
     Serial.print("getGPS ");
     Serial.println(millis());
+    isGPSEnable = false;
   }
 
   //Conexao com modulo GPS
@@ -571,118 +553,3 @@ void sleepModeON()
     modem.maintain();
   }
 }
-
-//void configurateGPS(){
-//  Serial_GPS.begin(9600, SERIAL_8N1, RXPin, TXPin);
-//  //Mostra informacoes iniciais no serial monitor
-//  Serial.println(F("Data, Hora, Latitude e Longitude"));
-//  Serial.println(F("Modulo GPS GY-NEO6MV2"));
-//  Serial.print(F("Biblioteca TinyGPS++ v. "));
-//  Serial.println(TinyGPSPlus::libraryVersion());
-//  Serial.println();
-//}
-
-//void displayInfo()
-//{
-//  //Mostra informacoes no Serial Monitor
-//  Serial.print(F("Location: "));
-//  if (gps.location.isValid())
-//  {
-//    Serial.print(gps.location.lat(), 6); //latitude
-//    Serial.print(F(","));
-//    Serial.print(gps.location.lng(), 6); //longitude
-//  }
-//  else
-//  {
-//    Serial.print(F("INVALID"));
-//  }
-//  Serial.print(F("  Date/Time: "));
-//  if (gps.date.isValid())
-//  {
-//    Serial.print(gps.date.day()); //dia
-//    Serial.print(F("/"));
-//    Serial.print(gps.date.month()); //mes
-//    Serial.print(F("/"));
-//    Serial.print(gps.date.year()); //ano
-//  }
-//  else
-//  {
-//    Serial.print(F("INVALID"));
-//  }
-//  Serial.print(F(" "));
-//  if (gps.time.isValid())
-//  {
-//    if (gps.time.hour() < 10) Serial.print(F("0"));
-//    Serial.print(gps.time.hour()); //hora
-//    Serial.print(F(":"));
-//    if (gps.time.minute() < 10) Serial.print(F("0"));
-//    Serial.print(gps.time.minute()); //minuto
-//    Serial.print(F(":"));
-//    if (gps.time.second() < 10) Serial.print(F("0"));
-//    Serial.print(gps.time.second()); //segundo
-//    Serial.print(F("."));
-//    if (gps.time.centisecond() < 10) Serial.print(F("0"));
-//    Serial.print(gps.time.centisecond());
-//  }
-//  else
-//  {
-//    Serial.print(F("INVALID"));
-//  }
-//  Serial.println();
-//}
-//void GPS_Timezone_Adjust()
-//{
-//  while (Serial_GPS.available())
-//  {
-//    if (gps.encode(Serial_GPS.read()))
-//    {
-//      int Year = gps.date.year();
-//      byte Month = gps.date.month();
-//      byte Day = gps.date.day();
-//      byte Hour = gps.time.hour();
-//      byte Minute = gps.time.minute();
-//      byte Second = gps.time.second();
-//      //Ajusta data e hora a partir dos dados do GPS
-//      setTime(Hour, Minute, Second, Day, Month, Year);
-//      //Aplica offset para ajustar data e hora
-//      //de acordo com a timezone
-//      adjustTime(UTC_offset * SECS_PER_HOUR);
-//    }
-//  }
-//}
-
-//void sendJSON(){
-//
-//    Serial.println(responseBody.length());
-//      int LOOP = responseBody.length()/MAX_SIZE;
-//      for(int i = 0; i < LOOP ; i++){
-//        char auxBytes[MAX_SIZE+1] = "";
-//          for(int j = 0; j < MAX_SIZE; j++)
-//            auxBytes[j] = responseBody[j+(MAX_SIZE*i)];
-//      Serial.println(auxBytes);
-//      pCharacteristic->setValue(auxBytes); //Setting the json to the characteristic
-//      pCharacteristic->notify(); //Notify the connected client
-//      delay(50);
-//      }
-//
-//      int REST = responseBody.length()%MAX_SIZE;
-//      if(REST != 0){
-//      char auxBytes[REST+1] = "";
-//      for(int j = 0; j <= REST; j++)
-//            auxBytes[j] = responseBody[j+(responseBody.length()- REST)];
-//      Serial.println(auxBytes);
-//      pCharacteristic->setValue(auxBytes); //Setting the json to the characteristic
-//      pCharacteristic->notify(); //Notify the connected client
-//      delay(50);
-//      }
-//}
-
-//void sendDataTest(){
-//  uint32_t cont = 1;
-//  while(cont <= 100){
-//    pCharacteristic->setValue((uint8_t*)&cont, 4);
-//    pCharacteristic->notify(); //Notify the connected client
-//    cont++;
-//    delay(10);
-//  }
-//}

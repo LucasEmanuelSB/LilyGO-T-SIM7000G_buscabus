@@ -8,6 +8,7 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
+#include <sys/time.h>
 
 #define RXPin 3 // RX2
 #define TXPin 1 // TX2
@@ -23,16 +24,19 @@
 #define uS_TO_S_FACTOR 1000000ULL // Conversion factor for micro seconds to seconds
 #define TIME_TO_SLEEP 60          // Time ESP32 will go to sleep (in seconds)
 #define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define CHARACTERISTIC_UUID_BUS "beb5483e-36e1-4688-b7f5-ea07361b26a1"
-/* #define CHARACTERISTIC_UUID_BUS_DRIVER "beb5483e-36e1-4688-b7f5-ea07361b26a2"
-#define CHARACTERISTIC_UUID_CALENDAR "beb5483e-36e1-4688-b7f5-ea07361b26a3" */
+#define CHARACTERISTIC_UUID_RX "beb5483e-36e1-4688-b7f5-ea07361b26a1"
+#define CHARACTERISTIC_UUID_LAT "68dadf0a-1323-11eb-adc1-0242ac120002"
+#define CHARACTERISTIC_UUID_LONG "7ac3dc76-1323-11eb-adc1-0242ac120002"
 bool LTE_M_Connected = false;
 bool BLE_deviceConnected = false;
-bool sendJSONFlag = true;
+bool sendJSON = true;
+bool sendLAT = false;
+bool sendLONG = false;
 bool updateJSON = false; // indicador de atualização do JSON
 const char server[] = "34.95.187.30";
 const char busId[] = "/api/buses/1";
-const char globalPosition[] = "/api/globalPositions/1";
+const char urlGlobalPosition[] = "/api/globalPositions/";
+char urlPUTRequest[25];
 const int port = 80;
 const char apn[] = "zap.vivo.com.br";
 const char gprsUser[] = "vivo";
@@ -41,6 +45,7 @@ const char *content_type = "application/json; charset=utf-8";
 String responseBody = "{}"; // resposta da requisicao GET http
 const int capacity = 200;
 bool isGPSEnable = false;
+bool isGPS_ON = false;
 bool ready = false;
 StaticJsonDocument<50> docGPS;
 String pieces[24], input;
@@ -50,26 +55,12 @@ TinyGsm modem(SerialAT);
 TinyGsmClient client(modem);
 HttpClient http(client, server, port);
 
-class MyServerCallbacks : public BLEServerCallbacks
-{
-
-    void onConnect(BLEServer *pServer)
-    {
-        BLE_deviceConnected = true;
-        sendJSONFlag = true;
-    };
-
-    void onDisconnect(BLEServer *pServer)
-    {
-        BLE_deviceConnected = false;
-    };
-};
-
 struct GlobalPosition
 {
     int id;
     float latitude;
     float longitude;
+    struct timeval timestamp;
 };
 struct Bus
 {
@@ -77,66 +68,54 @@ struct Bus
     int line;
     bool isAvailable;
 };
-/*
 
-
-struct BusDriver
-{
-    int id;
-    String name;
-    String averageRate; // nao é double para satisfazer a deserelizacao no cliente
-};
-
-struct Calendar
-{
-    int id;
-    String weeks[100];
-    String weekendsHolidays[100];
-};
-
-
-
-/* struct Itinerary
-{
-    int id;
-    int busId;
-    int routeId;
-    int calendarId;
-};
-
-struct Route
-{
-    int id;
-};
-
-struct BusStop
-{
-    int id;
-    bool isTerminal;
-    int adressId;
-};
-
-struct Adress
-{
-    int id;
-    String country;
-    String uf;
-    String city;
-    String neighborhood;
-    String street;
-    String cep;
-    String number;
-    int globalPositionId;                        
-};
-
-
-BusDriver busDriver;
-Calendar calendar;
-
-
-BLECharacteristic *pCharacteristic_Bus;
-BLECharacteristic *pCharacteristic_BusDriver;
-BLECharacteristic *pCharacteristic_Calendar; */
 Bus bus;
-BLECharacteristic *pCharacteristic;
 GlobalPosition currentPosition;
+GlobalPosition p1;
+GlobalPosition p2;
+BLECharacteristic *pCharacteristic_RX;
+BLECharacteristic *pCharacteristic_TX_LAT;
+BLECharacteristic *pCharacteristic_TX_LONG;
+
+class MyServerCallbacks : public BLEServerCallbacks
+{
+    void onConnect(BLEServer *pServer)
+    {
+        BLE_deviceConnected = true;
+        sendJSON = true;
+    };
+
+    void onDisconnect(BLEServer *pServer)
+    {
+        BLE_deviceConnected = false;
+        sendJSON = false;
+    };
+};
+
+//callback para eventos das características
+class CharacteristicCallbacks : public BLECharacteristicCallbacks
+{
+    void onWrite(BLECharacteristic *characteristic)
+    {
+        if (!isGPSEnable) // se GPS nao estiver disponível
+        {
+            Serial.print("Lendo latitude e longitude do usuário conectado");
+            std::string rxValue = characteristic->getValue();
+            Serial.print("rxValue -> ");
+            for(int i = 0; i < rxValue.length(); i++)
+                Serial.println(rxValue[i]);
+            if (rxValue.length() > 0)
+            {
+                //String uuid = .toString;
+                const char * uuid = characteristic->getUUID().toString().c_str();
+                float position = ::atof(rxValue.c_str());
+                if(uuid == CHARACTERISTIC_UUID_LAT)
+                    sendLAT = true;
+                 else if(uuid == CHARACTERISTIC_UUID_LONG)
+                    sendLONG = true;
+                
+            }
+        }
+    } //onWrite
+};
+

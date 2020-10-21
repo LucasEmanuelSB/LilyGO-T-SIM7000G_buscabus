@@ -24,9 +24,9 @@
 #define uS_TO_S_FACTOR 1000000ULL // Conversion factor for micro seconds to seconds
 #define TIME_TO_SLEEP 60          // Time ESP32 will go to sleep (in seconds)
 #define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define CHARACTERISTIC_UUID_RX "beb5483e-36e1-4688-b7f5-ea07361b26a1"
-#define CHARACTERISTIC_UUID_LAT "68dadf0a-1323-11eb-adc1-0242ac120002"
-#define CHARACTERISTIC_UUID_LONG "7ac3dc76-1323-11eb-adc1-0242ac120002"
+#define CHARACTERISTIC_UUID_TX "beb5483e-36e1-4688-b7f5-ea07361b26a1"
+#define CHARACTERISTIC_UUID_RX_LAT "68dadf0a-1323-11eb-adc1-0242ac120002"
+#define CHARACTERISTIC_UUID_RX_LONG "7ac3dc76-1323-11eb-adc1-0242ac120002"
 bool LTE_M_Connected = false;
 bool BLE_deviceConnected = false;
 bool sendJSON = true;
@@ -73,9 +73,9 @@ Bus bus;
 GlobalPosition currentPosition;
 GlobalPosition p1;
 GlobalPosition p2;
-BLECharacteristic *pCharacteristic_RX;
-BLECharacteristic *pCharacteristic_TX_LAT;
-BLECharacteristic *pCharacteristic_TX_LONG;
+BLECharacteristic *pCharacteristic_TX;
+BLECharacteristic *pCharacteristic_RX_LAT;
+BLECharacteristic *pCharacteristic_RX_LONG;
 
 class MyServerCallbacks : public BLEServerCallbacks
 {
@@ -93,29 +93,31 @@ class MyServerCallbacks : public BLEServerCallbacks
 };
 
 //callback para eventos das características
-class CharacteristicCallbacks : public BLECharacteristicCallbacks
+class CharacteristicCallbacks_LAT : public BLECharacteristicCallbacks
 {
     void onWrite(BLECharacteristic *characteristic)
     {
         if (!isGPSEnable) // se GPS nao estiver disponível
         {
-            Serial.print("Lendo latitude e longitude do usuário conectado");
             std::string rxValue = characteristic->getValue();
-            Serial.print("rxValue -> ");
-            for(int i = 0; i < rxValue.length(); i++)
-                Serial.println(rxValue[i]);
-            if (rxValue.length() > 0)
-            {
-                //String uuid = .toString;
-                const char * uuid = characteristic->getUUID().toString().c_str();
-                float position = ::atof(rxValue.c_str());
-                if(uuid == CHARACTERISTIC_UUID_LAT)
-                    sendLAT = true;
-                 else if(uuid == CHARACTERISTIC_UUID_LONG)
-                    sendLONG = true;
-                
-            }
+            currentPosition.latitude = ::atof(rxValue.c_str());
+            sendLAT = true;
         }
+            
+    } //onWrite
+};
+
+class CharacteristicCallbacks_LONG : public BLECharacteristicCallbacks
+{
+    void onWrite(BLECharacteristic *characteristic)
+    {
+        if (!isGPSEnable) // se GPS nao estiver disponível
+        {
+            std::string rxValue = characteristic->getValue();
+            currentPosition.longitude = ::atof(rxValue.c_str());
+            sendLONG = true;
+        }
+            
     } //onWrite
 };
 

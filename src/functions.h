@@ -40,8 +40,8 @@ void sendJSONBus()
       auxBytes[j] = responseBody[j + (MAX_SIZE * i)];
     }
 
-    pCharacteristic_RX->setValue(auxBytes); //Setting the json to the characteristic
-    pCharacteristic_RX->notify();           //Notify the connected client
+    pCharacteristic_TX->setValue(auxBytes); //Setting the json to the characteristic
+    pCharacteristic_TX->notify();           //Notify the connected client
     Serial.println(auxBytes);
     delay(500);
   }
@@ -53,14 +53,14 @@ void sendJSONBus()
     for (int j = 0; j <= REST; j++)
       auxBytes[j] = responseBody[j + (responseBody.length() - REST)];
 
-    pCharacteristic_RX->setValue(auxBytes); //Setting the json to the characteristic
-    pCharacteristic_RX->notify();           //Notify the connected client
+    pCharacteristic_TX->setValue(auxBytes); //Setting the json to the characteristic
+    pCharacteristic_TX->notify();           //Notify the connected client
     Serial.println(auxBytes);
     delay(500);
   }
 
-  pCharacteristic_RX->setValue("OK!");
-  pCharacteristic_RX->notify();
+  pCharacteristic_TX->setValue("OK!");
+  pCharacteristic_TX->notify();
   delay(500);
 }
 
@@ -195,10 +195,12 @@ void configurateBLE()
   pServer->setCallbacks(new MyServerCallbacks()); // Define as funções de callback para o ajuste de conexões e desconexões
   Serial.println("Waiting for a client connection to notify ...");
   BLEService *pService = pServer->createService(SERVICE_UUID);                                                                                      //Create the BLE Service
-  pCharacteristic_RX = pService->createCharacteristic(CHARACTERISTIC_UUID_RX, BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ); //BLE2902 needed to notify
-  pCharacteristic_RX->addDescriptor(new BLE2902());                                                                                                    // Add a Descriptor to the Characteristic
-  pCharacteristic_TX_LAT = pService->createCharacteristic(CHARACTERISTIC_UUID_LAT, BLECharacteristic::PROPERTY_WRITE);
-  pCharacteristic_TX_LONG = pService->createCharacteristic(CHARACTERISTIC_UUID_LONG, BLECharacteristic::PROPERTY_WRITE);
+  pCharacteristic_TX = pService->createCharacteristic(CHARACTERISTIC_UUID_TX, BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ); //BLE2902 needed to notify
+  pCharacteristic_TX->addDescriptor(new BLE2902());                                                                                                    // Add a Descriptor to the Characteristic
+  pCharacteristic_RX_LAT = pService->createCharacteristic(CHARACTERISTIC_UUID_RX_LAT, BLECharacteristic::PROPERTY_WRITE);
+  pCharacteristic_RX_LAT->setCallbacks(new CharacteristicCallbacks_LAT());
+  pCharacteristic_RX_LONG = pService->createCharacteristic(CHARACTERISTIC_UUID_RX_LONG, BLECharacteristic::PROPERTY_WRITE);
+  pCharacteristic_RX_LONG->setCallbacks(new CharacteristicCallbacks_LONG());
   pServer->getAdvertising()->start();                                                                                                               //Start advertising
   pService->start();                                                                                                                                //Start the Service                 //Start the Service
 }

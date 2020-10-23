@@ -17,8 +17,6 @@ void configurate();
 void testGPRS();
 void httpGETRequest();
 void httpPUTRequest();
-void 
-Bus();
 void httpShowStatusCode();
 void sendDataTest();
 void setValueBusBLE();
@@ -27,6 +25,9 @@ void setValueCalendarBLE();
 void setValueCharacteristcs();
 void deserializableRequest();
 void setUrlGlobalPosition();
+void TaskRunningOnAppCore(void *arg);
+void TaskRunningOnProtocolCore(void *arg);
+void scanBLE();
 
 void sendJSONBus()
 {
@@ -79,42 +80,44 @@ void sendJSONBus()
   //return speed_kph;
 } */
 
-double differenceTimestamp(double timestamp1, double timestamp2){
+double differenceTimestamp(double timestamp1, double timestamp2)
+{
   return (timestamp2 - timestamp1);
 }
 
-double distanceOnGeoid(double lat1, double lon1, double lat2, double lon2) {
- 
-	// Convert degrees to radians
-	lat1 = lat1 * M_PI / 180.0;
-	lon1 = lon1 * M_PI / 180.0;
- 
-	lat2 = lat2 * M_PI / 180.0;
-	lon2 = lon2 * M_PI / 180.0;
- 
-	// radius of earth in metres
-	double r = 6378100;
- 
-	// P
-	double rho1 = r * cos(lat1);
-	double z1 = r * sin(lat1);
-	double x1 = rho1 * cos(lon1);
-	double y1 = rho1 * sin(lon1);
- 
-	// Q
-	double rho2 = r * cos(lat2);
-	double z2 = r * sin(lat2);
-	double x2 = rho2 * cos(lon2);
-	double y2 = rho2 * sin(lon2);
- 
-	// Dot product
-	double dot = (x1 * x2 + y1 * y2 + z1 * z2);
-	double cos_theta = dot / (r * r);
- 
-	double theta = acos(cos_theta);
- 
-	// Distance in Metres
-	return r * theta;
+double distanceOnGeoid(double lat1, double lon1, double lat2, double lon2)
+{
+
+  // Convert degrees to radians
+  lat1 = lat1 * M_PI / 180.0;
+  lon1 = lon1 * M_PI / 180.0;
+
+  lat2 = lat2 * M_PI / 180.0;
+  lon2 = lon2 * M_PI / 180.0;
+
+  // radius of earth in metres
+  double r = 6378100;
+
+  // P
+  double rho1 = r * cos(lat1);
+  double z1 = r * sin(lat1);
+  double x1 = rho1 * cos(lon1);
+  double y1 = rho1 * sin(lon1);
+
+  // Q
+  double rho2 = r * cos(lat2);
+  double z2 = r * sin(lat2);
+  double x2 = rho2 * cos(lon2);
+  double y2 = rho2 * sin(lon2);
+
+  // Dot product
+  double dot = (x1 * x2 + y1 * y2 + z1 * z2);
+  double cos_theta = dot / (r * r);
+
+  double theta = acos(cos_theta);
+
+  // Distance in Metres
+  return r * theta;
 }
 
 void testGPRS()
@@ -183,26 +186,59 @@ void deserializableRequest()
   currentPosition.id = doc["currentPosition"]["id"].as<int>();
 }
 
+void scanBLE()
+{
+  BLEScan *pBLEScan = BLEDevice::getScan();
+  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+  pBLEScan->setActiveScan(true);
+  //pBLEScan->setInterval(mSeconds);
+  BLEScanResults foundDevices = pBLEScan->start(5);
+  Serial.print("foundDevices -> ");
+  int deviceCount = foundDevices.getCount();
+  Serial.println(deviceCount);
+  for (uint32_t i = 0; i < deviceCount; i++)
+  {
+    BLEAdvertisedDevice device = foundDevices.getDevice(i);
+    Serial.print("Device ");
+    Serial.print(i + 1);
+    Serial.print(" -> ");
+    Serial.println(device.getAddress().toString().c_str());
+    /*   if (strcmp(device.getName(), "Parking") == 0)
+    {
+      Serial.print("We found a device named \"Parking\"");
+    }  */
+  }
+  Serial.println("Vector -> ");
+  for (int i = 0; i < adressesDevicesDetected.size(); i++)
+  {
+    Serial.print("Device ");
+    Serial.print(i + 1);
+    Serial.print(" -> ");
+    Serial.println(adressesDevicesDetected[i].getAddress().toString().c_str());
+  }
+  adressesDevicesDetected.clear();
+}
+
 void configurateBLE()
 {
   // Converte int para char, e define o nome do dispositivo com o n° da linha correspondente ao ônibus do json
   String deviceName = String(bus.line);
   char deviceNameChar[deviceName.length()];
   deviceName.toCharArray(deviceNameChar, deviceName.length() + 1);
-  Serial.println(deviceNameChar);
+  //Serial.println(deviceNameChar);
   BLEDevice::init(deviceNameChar);                // Cria um dispositivo BLE com o nome da linha
   BLEServer *pServer = BLEDevice::createServer(); // Cria um Servidor BLE
   pServer->setCallbacks(new MyServerCallbacks()); // Define as funções de callback para o ajuste de conexões e desconexões
   Serial.println("Waiting for a client connection to notify ...");
-  BLEService *pService = pServer->createService(SERVICE_UUID);                                                                                      //Create the BLE Service
+  BLEService *pService = pServer->createService(SERVICE_UUID);                                                                                        //Create the BLE Service
   pCharacteristic_TX = pService->createCharacteristic(CHARACTERISTIC_UUID_TX, BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ); //BLE2902 needed to notify
-  pCharacteristic_TX->addDescriptor(new BLE2902());                                                                                                    // Add a Descriptor to the Characteristic
+  pCharacteristic_TX->addDescriptor(new BLE2902());                                                                                                   // Add a Descriptor to the Characteristic
   pCharacteristic_RX_LAT = pService->createCharacteristic(CHARACTERISTIC_UUID_RX_LAT, BLECharacteristic::PROPERTY_WRITE);
   pCharacteristic_RX_LAT->setCallbacks(new CharacteristicCallbacks_LAT());
   pCharacteristic_RX_LONG = pService->createCharacteristic(CHARACTERISTIC_UUID_RX_LONG, BLECharacteristic::PROPERTY_WRITE);
   pCharacteristic_RX_LONG->setCallbacks(new CharacteristicCallbacks_LONG());
-  pServer->getAdvertising()->start();                                                                                                               //Start advertising
-  pService->start();                                                                                                                                //Start the Service                 //Start the Service
+  pServer->getAdvertising()->start(); //Start advertising
+  pService->start();                  //Start the Service                 //Start the Service
 }
 
 void configurate()
@@ -358,13 +394,14 @@ void httpGETRequest()
   httpDisconnect();
 }
 
-void setUrlGlobalPosition(){
-  strcpy(urlPUTRequest,urlGlobalPosition);
+void setUrlGlobalPosition()
+{
+  strcpy(urlPUTRequest, urlGlobalPosition);
   Serial.print("current-Position-id: ");
   Serial.println(currentPosition.id);
   char id[10];
-  sprintf(id,"%d",currentPosition.id);
-  strcat(urlPUTRequest,id);
+  sprintf(id, "%d", currentPosition.id);
+  strcat(urlPUTRequest, id);
 }
 
 void httpPUTRequest()
@@ -402,29 +439,31 @@ void disableGPS()
   isGPS_ON = false;
 }
 
-void savePoints(){
-    p2.latitude = p1.latitude;
-    p2.longitude = p1.longitude;
-    p2.timestamp = p1.timestamp;
+void savePoints()
+{
+  p2.latitude = p1.latitude;
+  p2.longitude = p1.longitude;
+  p2.timestamp = p1.timestamp;
 
-    p1.latitude = currentPosition.latitude;
-    p1.longitude = currentPosition.longitude;
-    p1.timestamp = currentPosition.timestamp;
+  p1.latitude = currentPosition.latitude;
+  p1.longitude = currentPosition.longitude;
+  p1.timestamp = currentPosition.timestamp;
 }
 
-bool checkDeviceCoordinates(){
-  if((sendLAT && sendLONG) == true)
+bool checkDeviceCoordinates()
+{
+  if ((sendLAT && sendLONG) == true)
     return true;
-  else 
+  else
     return false;
 }
 
 void getGPS()
 {
-  
+
   if (modem.getGPS(&currentPosition.latitude, &currentPosition.longitude))
   { // Se há latitude e longitude, faça:
-    gettimeofday(&currentPosition.timestamp,NULL);
+    gettimeofday(&currentPosition.timestamp, NULL);
     Serial.printf("latitude:%f longitude:%f\n", currentPosition.latitude, currentPosition.longitude);
     httpPUTRequest();
     isGPSEnable = true;

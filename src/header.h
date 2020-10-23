@@ -6,9 +6,14 @@
 #include <ArduinoHttpClient.h>
 #include <BLEDevice.h>
 #include <BLEUtils.h>
+#include <BLEScan.h>
+#include <BLEAdvertisedDevice.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
 #include <sys/time.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <esp_ipc.h>
 
 #define RXPin 3 // RX2
 #define TXPin 1 // TX2
@@ -27,6 +32,7 @@
 #define CHARACTERISTIC_UUID_TX "beb5483e-36e1-4688-b7f5-ea07361b26a1"
 #define CHARACTERISTIC_UUID_RX_LAT "68dadf0a-1323-11eb-adc1-0242ac120002"
 #define CHARACTERISTIC_UUID_RX_LONG "7ac3dc76-1323-11eb-adc1-0242ac120002"
+
 bool LTE_M_Connected = false;
 bool BLE_deviceConnected = false;
 bool sendJSON = true;
@@ -43,6 +49,11 @@ const char gprsUser[] = "vivo";
 const char gprsPass[] = "vivo";
 const char *content_type = "application/json; charset=utf-8";
 String responseBody = "{}"; // resposta da requisicao GET http
+const int scanTime = 7;
+const int mSeconds = 100;
+const int minRSSI = -80;
+bool newDeviceDetected = false;
+std::vector<BLEAdvertisedDevice> adressesDevicesDetected;
 const int capacity = 200;
 bool isGPSEnable = false;
 bool isGPS_ON = false;
@@ -55,6 +66,7 @@ TinyGsm modem(SerialAT);
 TinyGsmClient client(modem);
 HttpClient http(client, server, port);
 
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 struct GlobalPosition
 {
     int id;
@@ -103,7 +115,7 @@ class CharacteristicCallbacks_LAT : public BLECharacteristicCallbacks
             currentPosition.latitude = ::atof(rxValue.c_str());
             sendLAT = true;
         }
-            
+
     } //onWrite
 };
 
@@ -117,7 +129,18 @@ class CharacteristicCallbacks_LONG : public BLECharacteristicCallbacks
             currentPosition.longitude = ::atof(rxValue.c_str());
             sendLONG = true;
         }
-            
+
     } //onWrite
 };
 
+class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
+{
+    void onResult(BLEAdvertisedDevice advertisedDevice)
+    {
+        //const char * adress = advertisedDevice.getAddress().toString().c_str();
+        //Serial.print("Device found -> ");
+        //Serial.println(adress);
+        if(advertisedDevice.getRSSI() > minRSSI)
+            adressesDevicesDetected.push_back(advertisedDevice);
+    }
+};

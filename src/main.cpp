@@ -3,9 +3,7 @@
   AUTHOR: Lucas Emanuel da Silveira Batista
   PURPOSE: Sistema Embarcado - TTC 3
 */
-#include <Arduino.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
+
 #include "functions.h"
 
 void setup()
@@ -24,7 +22,7 @@ void setup()
   deserializableRequest();
   setUrlGlobalPosition();
   enableGPS();
-  getGPS();
+  getGPS(); 
   configurateBLE();
   xTaskCreatePinnedToCore(TaskRunningOnAppCore,
                           "TaskOnApp",
@@ -32,7 +30,7 @@ void setup()
                           NULL,
                           4,
                           NULL,
-                          APP_CPU_NUM);
+                          APP_CPU_NUM); 
 
   xTaskCreatePinnedToCore(TaskRunningOnProtocolCore,
                           "TaskOnPro",
@@ -87,19 +85,12 @@ void TaskRunningOnProtocolCore(void *arg)
       }
     }
     scanBLE();
-    delay(1000);
-    vTaskDelay(100);
+    delay(500);
+    //vTaskDelay(100);
   }
 }
+
 void loop()
 {
-  Serial.print(__func__);
-  Serial.print(" : ");
-  Serial.print(xTaskGetTickCount());
-  Serial.print(" : ");
-  Serial.print("Arduino loop is running on core:");
-  Serial.println(xPortGetCoreID());
-  Serial.println();
-
   delay(500);
 }

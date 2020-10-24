@@ -10,15 +10,13 @@
 #include <BLEAdvertisedDevice.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
+#include <BLEBeacon.h>
 #include <sys/time.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <esp_ipc.h>
-
 #define RXPin 3 // RX2
 #define TXPin 1 // TX2
 #define MAX_SIZE 100
-
 #define SerialAT Serial1
 #define UART_BAUD 9600
 #define PIN_DTR 25
@@ -32,7 +30,13 @@
 #define CHARACTERISTIC_UUID_TX "beb5483e-36e1-4688-b7f5-ea07361b26a1"
 #define CHARACTERISTIC_UUID_RX_LAT "68dadf0a-1323-11eb-adc1-0242ac120002"
 #define CHARACTERISTIC_UUID_RX_LONG "7ac3dc76-1323-11eb-adc1-0242ac120002"
-
+#define BEACON_UUID "ce936957-6db7-48f3-a3c5-515d51ad4933"
+#define MAJOR_BEACON 1
+#define MINOR_BEACON 1
+#define ID_FABRICANTE_BEACON 0x4C00
+#define BEACON_DATA ""
+#define BEACON_DATA_SIZE 26
+#define BEACON_DATA_TYPE 0xFF
 bool LTE_M_Connected = false;
 bool BLE_deviceConnected = false;
 bool sendJSON = true;
@@ -54,6 +58,7 @@ const int mSeconds = 100;
 const int minRSSI = -80;
 bool newDeviceDetected = false;
 std::vector<BLEAdvertisedDevice> adressesDevicesDetected;
+BLEAdvertising *pAdvertising;
 const int capacity = 200;
 bool isGPSEnable = false;
 bool isGPS_ON = false;

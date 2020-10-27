@@ -1,32 +1,28 @@
-#define TINY_GSM_MODEM_SIM7000 // MODEM TYPE
+#define TINY_GSM_MODEM_SIM7000 // Tipo do modem 
 
-#include <Arduino.h>
-#include <ArduinoJson.h>
-#include <TinyGsmClient.h>
-#include <ArduinoHttpClient.h>
-#include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEScan.h>
-#include <BLEAdvertisedDevice.h>
-#include <BLEServer.h>
-#include <BLE2902.h>
-#include <BLEBeacon.h>
-#include <sys/time.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#define RXPin 3 // RX2
-#define TXPin 1 // TX2
-#define MAX_SIZE 100
-#define SerialAT Serial1
-#define UART_BAUD 9600
+#include <Arduino.h> 
+#include <ArduinoJson.h> // Serialização e deserealização de json's
+#include <TinyGsmClient.h> // Conexão com a rede LTE-M
+#include <ArduinoHttpClient.h> // Requisições HTTP
+#include <BLEDevice.h> // (Dispositivos) Bluetooth Low Energy 
+#include <BLEUtils.h> // (Utilitários) Bluetooth Low Energy 
+#include <BLEScan.h> // (Scanner) Bluetooth Low Energy 
+#include <BLEAdvertisedDevice.h> // (Anunciamento) Bluetooth Low Energy 
+#include <BLEServer.h> // (Servidor) Bluetooth Low Energy 
+#include <BLE2902.h> // (Descritor) Bluetooth Low Energy 
+#include <BLEBeacon.h> // (Beacon) Bluetooth Low Energy 
+#include <sys/time.h> // Recuperação do tempo atual
+#include <freertos/FreeRTOS.h> // (RTOS) Multiprocessamento
+#include <freertos/task.h> // (Tarefas) Multiprocessamento
+#define MAX_SIZE 100 // Tamanho máximo para o particionamento do JSON
+#define SerialAT Serial1 // Comandos AT
+#define UART_BAUD 9600 // Baud Rate
 #define PIN_DTR 25
-#define PIN_TX 27                 // transmissão de dados
-#define PIN_RX 26                 // recepcção de dados
-#define PWR_PIN 4                 // energia
-#define GSM_PIN "8486"            // GSM PIN
-#define uS_TO_S_FACTOR 1000000ULL // Conversion factor for micro seconds to seconds
-#define TIME_TO_SLEEP 60          // Time ESP32 will go to sleep (in seconds)
-#define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define PIN_TX 27  // transmissão de dados
+#define PIN_RX 26  // recepcção de dados
+#define PWR_PIN 4  // energia
+#define GSM_PIN "8486" // GSM PIN
+#define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b" 
 #define CHARACTERISTIC_UUID_TX "beb5483e-36e1-4688-b7f5-ea07361b26a1"
 #define CHARACTERISTIC_UUID_RX_LAT "68dadf0a-1323-11eb-adc1-0242ac120002"
 #define CHARACTERISTIC_UUID_RX_LONG "7ac3dc76-1323-11eb-adc1-0242ac120002"
@@ -37,11 +33,12 @@
 #define BEACON_DATA ""
 #define BEACON_DATA_SIZE 26
 #define BEACON_DATA_TYPE 0xFF
-bool LTE_M_Connected = false;
-bool BLE_deviceConnected = false;
+bool isLTEMConnected = false;
+bool isBLEDeviceConnected = false;
 bool sendJSON = true;
 bool sendLAT = false;
 bool sendLONG = false;
+bool sendCoordinates = false;
 bool updateJSON = false; // indicador de atualização do JSON
 const char server[] = "34.95.187.30";
 const char busId[] = "/api/buses/1";
@@ -59,14 +56,14 @@ const int minRSSI = -80;
 bool newDeviceDetected = false;
 std::vector<BLEAdvertisedDevice> adressesDevicesDetected;
 BLEAdvertising *pAdvertising;
+int countSearchDevice = 0;
 const int capacity = 200;
 bool isGPSEnable = false;
-bool isGPS_ON = false;
+bool isGPSOn = false;
 bool ready = false;
 StaticJsonDocument<50> docGPS;
 String pieces[24], input;
 int counter, lastIndex, numberOfPieces = 24;
-
 TinyGsm modem(SerialAT);
 TinyGsmClient client(modem);
 HttpClient http(client, server, port);
@@ -98,13 +95,13 @@ class MyServerCallbacks : public BLEServerCallbacks
 {
     void onConnect(BLEServer *pServer)
     {
-        BLE_deviceConnected = true;
+        isBLEDeviceConnected = true;
         sendJSON = true;
     };
 
     void onDisconnect(BLEServer *pServer)
     {
-        BLE_deviceConnected = false;
+        isBLEDeviceConnected = false;
         sendJSON = false;
     };
 };

@@ -4,7 +4,10 @@
   PURPOSE: Sistema Embarcado - TTC 3
 */
 
-#include "functions.h"
+#include "allfunctions.h"
+
+void taskLTEM(void *arg);
+void taskBLE(void *arg);
 
 void setup()
 {
@@ -16,23 +19,24 @@ void setup()
   disableGPS();
   setNetworkMode();
   setPreferredMode();
-  connectLTE_M();
-  testGPRS();
+  connectLTEM();
+  serialATdecode();
+  waitConnectionLTEM();
   httpGETRequest(); //Chama a função httpGETRequest, responsável pela requisição GET via protocolo http
-  deserializableRequest();
+  deserializableJSON();
   setUrlGlobalPosition();
   enableGPS();
-  getGPS(); 
+  getCoordinatesGPS();
   configurateBLE();
-  xTaskCreatePinnedToCore(TaskRunningOnAppCore,
+  xTaskCreatePinnedToCore(taskLTEM,
                           "TaskOnApp",
                           3600,
                           NULL,
                           4,
                           NULL,
-                          APP_CPU_NUM); 
+                          APP_CPU_NUM);
 
-  xTaskCreatePinnedToCore(TaskRunningOnProtocolCore,
+  xTaskCreatePinnedToCore(taskBLE,
                           "TaskOnPro",
                           3600,
                           NULL,
@@ -41,16 +45,22 @@ void setup()
                           PRO_CPU_NUM);
 }
 
-void TaskRunningOnAppCore(void *arg)
+void taskLTEM(void *arg)
 {
   while (1)
   {
-    if (LTE_M_Connected)
+    if (isLTEMConnected)
     { // LTE-M está ligado?
-      if (isGPS_ON)
+      if (isGPSOn)
       {
-        getGPS();
+        getCoordinatesGPS();
         delay(10);
+      }
+      if (sendCoordinates)
+      {
+        savePoints();
+        httpPUTRequest();
+        sendCoordinates = false;
       }
       if (updateJSON)
       {
@@ -58,23 +68,23 @@ void TaskRunningOnAppCore(void *arg)
         httpGETRequest(); //Chama a função httpGETRequest, responsável pela requisição GET via protocolo http
         delay(800);
       }
+
       //getGPS(); // Recupera posição global atual
     }
     vTaskDelay(100);
   }
 }
 
-void TaskRunningOnProtocolCore(void *arg)
+void taskBLE(void *arg)
 {
   while (1)
   {
-    if (BLE_deviceConnected)
+    if (isBLEDeviceConnected)
     { // Algum dispositivo se conectou a este ônibus (ESP32) ? Se sim, faça:
-      //Serial.println("....");
       if (sendJSON)
       {
-        delay(6000);
-        sendJSONBus();
+        delay(6000); // Aguardar um pouco para uma conexão estável
+        sendJSONBLE(); // Envia os dados JSON referentes ao onibus para o usuário que se conectou.
         sendJSON = false;
       }
       if (checkDeviceCoordinates())
@@ -84,13 +94,18 @@ void TaskRunningOnProtocolCore(void *arg)
         sendLONG = false;
       }
     }
-    scanBLE();
-    delay(500);
-    //vTaskDelay(100);
+    if (countSearchDevice > 600) // com um contador de 600, a condição só sera verdadeira a cada ~1 min
+    {
+      searchDevicesBLE();
+      Serial.print("Buscando por dispositivos");
+      countSearchDevice = 0;
+    }
+    delay(100);
+    countSearchDevice++;
   }
 }
 
 void loop()
 {
-  delay(500);
+  delay(1);
 }

@@ -5,13 +5,13 @@
 #include "http.h"
 
 /* OUTRAS FUNÇÕES */
-void configurate(); // Configura Serial e pinagem da placa
-void deserializableJSON();   // Deserializa JSON
-void setUrlGlobalPosition(); // define url para requisições http
-void savePoints(); // Salva os pontos de latitude e longitude em p2 e p1, respectivamente
-bool checkDeviceCoordinates(); // Verifica se as coordenadas recuperados de um dispositivo por conexão BLE já estão disponíveis
-double calculateVelocity(); // Calcula a velocidade do ônibus utilizando distância e tempo dos pontos p1 e p2
-double differenceTimestamp(double timestamp1, double timestamp2); // Aplica a diferença dos tempos de p1 e p2
+void configurate();                                                         // Configura Serial e pinagem da placa
+void deserializableJSON();                                                  // Deserializa JSON
+void setUrlGlobalPosition();                                                // define url para requisições http
+void savePoints();                                                          // Salva os pontos de latitude e longitude em p2 e p1, respectivamente
+bool checkDeviceCoordinates();                                              // Verifica se as coordenadas recuperados de um dispositivo por conexão BLE já estão disponíveis
+void calculateVelocity();                                                 // Calcula a velocidade do ônibus utilizando distância e tempo dos pontos p1 e p2
+double differenceTimestamp(double timestamp1, double timestamp2);           // Aplica a diferença dos tempos de p1 e p2
 double distanceOnGeoid(double lat1, double lon1, double lat2, double lon2); // calcula a distância no globo utilizando as coordenadas
 
 void configurate()
@@ -43,17 +43,16 @@ void deserializableJSON()
   bus.line = doc["line"].as<int>();
   Serial.print(bus.line);
   bus.isAvailable = doc["isAvailable"].as<bool>();
-
-  currentPosition.id = doc["currentPosition"]["id"].as<int>();
+  realTimeData.id = doc["realTimeData"]["id"].as<int>();
 }
 
 void setUrlGlobalPosition()
 {
-  strcpy(urlPUTRequest, urlGlobalPosition);
-  Serial.print("current-Position-id: ");
-  Serial.println(currentPosition.id);
+  strcpy(urlPUTRequest, urlRealTimeData);
+  Serial.print("urlRealTimeData-id: ");
+  Serial.println(realTimeData.id);
   char id[10];
-  sprintf(id, "%d", currentPosition.id);
+  sprintf(id, "%d", realTimeData.id);
   strcat(urlPUTRequest, id);
 }
 
@@ -63,9 +62,9 @@ void savePoints()
   p2.longitude = p1.longitude;
   p2.timestamp = p1.timestamp;
 
-  p1.latitude = currentPosition.latitude;
-  p1.longitude = currentPosition.longitude;
-  p1.timestamp = currentPosition.timestamp;
+  p1.latitude = realTimeData.currentPosition.latitude;
+  p1.longitude = realTimeData.currentPosition.longitude;
+  p1.timestamp = realTimeData.currentPosition.timestamp;
 }
 
 bool checkDeviceCoordinates()
@@ -76,17 +75,19 @@ bool checkDeviceCoordinates()
     return false;
 }
 
-double calculateVelocity()
+void calculateVelocity()
 {
-  if((p1.latitude == 0) || (p1.longitude == 0) || (p1.timestamp.tv_sec == 0))
-    return 0;
-  if((p2.latitude == 0) || (p2.longitude == 0) || (p2.timestamp.tv_sec == 0))
-    return 0;
-
-  double distance = distanceOnGeoid(p1.latitude, p1.longitude, p2.latitude, p2.longitude);
-  double time = differenceTimestamp(p1.timestamp.tv_sec, p2.timestamp.tv_sec);
-  double speed_mps = distance / time;
-  return speed_mps;
+  if ((p1.latitude == 0) || (p1.longitude == 0) || (p1.timestamp.tv_sec == 0))
+    realTimeData.velocity = 0;
+  else if ((p2.latitude == 0) || (p2.longitude == 0) || (p2.timestamp.tv_sec == 0))
+    realTimeData.velocity = 0;
+  else
+  {
+    double distance = distanceOnGeoid(p1.latitude, p1.longitude, p2.latitude, p2.longitude);
+    double time = differenceTimestamp(p2.timestamp.tv_sec,p1.timestamp.tv_sec);
+    double speed_mps = distance / time;
+    realTimeData.velocity = speed_mps;
+  }
 }
 
 double differenceTimestamp(double timestamp1, double timestamp2)
@@ -128,4 +129,3 @@ double distanceOnGeoid(double lat1, double lon1, double lat2, double lon2)
   // Distance in Metres
   return r * theta;
 }
-

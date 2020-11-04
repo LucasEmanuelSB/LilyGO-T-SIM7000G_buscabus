@@ -38,11 +38,11 @@ bool isBLEDeviceConnected = false;
 bool sendJSON = true;
 bool sendLAT = false;
 bool sendLONG = false;
-bool sendCoordinates = false;
+bool sendRealTimeData = false;
 bool updateJSON = false; // indicador de atualização do JSON
 const char server[] = "34.95.187.30";
 const char busId[] = "/api/buses/1";
-const char urlGlobalPosition[] = "/api/globalPositions/";
+const char urlRealTimeData[] = "/api/realTimeData/";
 char urlPUTRequest[25];
 const int port = 80;
 const char apn[] = "zap.vivo.com.br";
@@ -61,7 +61,7 @@ const int capacity = 200;
 bool isGPSEnable = false;
 bool isGPSOn = false;
 bool ready = false;
-StaticJsonDocument<50> docGPS;
+StaticJsonDocument<100> docRealTime;
 String pieces[24], input;
 int counter, lastIndex, numberOfPieces = 24;
 TinyGsm modem(SerialAT);
@@ -69,12 +69,19 @@ TinyGsmClient client(modem);
 HttpClient http(client, server, port);
 
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
-struct GlobalPosition
-{
-    int id;
+
+struct GlobalPosition {
     float latitude;
     float longitude;
     struct timeval timestamp;
+};
+
+struct RealTimeData
+{
+    int id;
+    float velocity;
+    int nDevices;
+    GlobalPosition currentPosition;
 };
 struct Bus
 {
@@ -84,7 +91,7 @@ struct Bus
 };
 
 Bus bus;
-GlobalPosition currentPosition;
+RealTimeData realTimeData;
 GlobalPosition p1;
 GlobalPosition p2;
 BLECharacteristic *pCharacteristic_TX;
@@ -114,7 +121,7 @@ class CharacteristicCallbacks_LAT : public BLECharacteristicCallbacks
         if (!isGPSEnable) // se GPS nao estiver disponível
         {
             std::string rxValue = characteristic->getValue();
-            currentPosition.latitude = ::atof(rxValue.c_str());
+            realTimeData.currentPosition.latitude = ::atof(rxValue.c_str());
             sendLAT = true;
         }
 
@@ -128,7 +135,7 @@ class CharacteristicCallbacks_LONG : public BLECharacteristicCallbacks
         if (!isGPSEnable) // se GPS nao estiver disponível
         {
             std::string rxValue = characteristic->getValue();
-            currentPosition.longitude = ::atof(rxValue.c_str());
+            realTimeData.currentPosition.longitude = ::atof(rxValue.c_str());
             sendLONG = true;
         }
 

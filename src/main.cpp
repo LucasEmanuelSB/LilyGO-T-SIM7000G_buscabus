@@ -29,7 +29,7 @@ void setup()
   getCoordinatesGPS();
   configurateBLE();
   xTaskCreatePinnedToCore(taskLTEM,
-                          "TaskOnApp",
+                          "taskLTEM",
                           3600,
                           NULL,
                           4,
@@ -37,7 +37,7 @@ void setup()
                           APP_CPU_NUM);
 
   xTaskCreatePinnedToCore(taskBLE,
-                          "TaskOnPro",
+                          "taskBLE",
                           3600,
                           NULL,
                           8,
@@ -56,11 +56,13 @@ void taskLTEM(void *arg)
         getCoordinatesGPS();
         delay(10);
       }
-      if (sendCoordinates)
+      if (sendRealTimeData)
       {
         savePoints();
+        calculateVelocity();
         httpPUTRequest();
-        sendCoordinates = false;
+        sendRealTimeData = false;
+        delay(2000);
       }
       if (updateJSON)
       {
@@ -68,8 +70,6 @@ void taskLTEM(void *arg)
         httpGETRequest(); //Chama a função httpGETRequest, responsável pela requisição GET via protocolo http
         delay(800);
       }
-
-      //getGPS(); // Recupera posição global atual
     }
     vTaskDelay(100);
   }

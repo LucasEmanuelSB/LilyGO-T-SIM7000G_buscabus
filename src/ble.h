@@ -69,9 +69,10 @@ void searchDevicesBLE()
   BLEScan *pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   pBLEScan->setActiveScan(true);
+  pBLEScan->start(5);
   //pBLEScan->setInterval(mSeconds);
-  BLEScanResults foundDevices = pBLEScan->start(5);
-  Serial.print("foundDevices -> ");
+  //BLEScanResults foundDevices = pBLEScan->start(5);
+/*   Serial.print("foundDevices -> ");
   int deviceCount = foundDevices.getCount();
   Serial.println(deviceCount);
   for (uint32_t i = 0; i < deviceCount; i++)
@@ -84,8 +85,9 @@ void searchDevicesBLE()
     /*   if (strcmp(device.getName(), "Parking") == 0)
     {
       Serial.print("We found a device named \"Parking\"");
-    }  */
-  }
+    } 
+  } */
+  realTimeData.nDevices = adressesDevicesDetected.size();
   Serial.println("Vector -> ");
   for (int i = 0; i < adressesDevicesDetected.size(); i++)
   {

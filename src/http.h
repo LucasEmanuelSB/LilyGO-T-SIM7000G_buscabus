@@ -50,11 +50,13 @@ void httpGETRequest()
 
 void httpPUTRequest()
 {
-  docGPS["latitude"] = currentPosition.latitude;
-  docGPS["longitude"] = currentPosition.longitude;
+  docRealTime["latitude"] = realTimeData.currentPosition.latitude;
+  docRealTime["longitude"] = realTimeData.currentPosition.longitude;
+  docRealTime["velocity"] = realTimeData.velocity;
+  docRealTime["nDevices"] = realTimeData.nDevices;
   // Convert the document to an object
   String json;
-  serializeJson(docGPS, json);
+  serializeJson(docRealTime, json);
 
   Serial.print(F("Performing HTTP PUT request... "));
   Serial.println(json);

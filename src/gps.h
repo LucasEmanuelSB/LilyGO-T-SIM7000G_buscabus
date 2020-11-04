@@ -20,11 +20,11 @@ void disableGPS()
 
 void getCoordinatesGPS()
 {
-  if (modem.getGPS(&currentPosition.latitude, &currentPosition.longitude))
+  if (modem.getGPS(&realTimeData.currentPosition.latitude, &realTimeData.currentPosition.longitude))
   {
-    gettimeofday(&currentPosition.timestamp, NULL); //Recupera tempo atual do dia
-    Serial.printf("latitude:%f longitude:%f\n", currentPosition.latitude, currentPosition.longitude);
-    sendCoordinates = true; // indica que é possível enviar as coordenadas lat e long
+    gettimeofday(&realTimeData.currentPosition.timestamp, NULL); //Recupera tempo atual do dia
+    Serial.printf("latitude:%f longitude:%f\n", realTimeData.currentPosition.latitude, realTimeData.currentPosition.longitude);
+    sendRealTimeData = true; // indica que é possível enviar as coordenadas lat e long
     isGPSEnable = true; // indica que o gps está disponível
   }
   else

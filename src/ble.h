@@ -6,7 +6,6 @@ void sendJSONBLE(); // / Envia JSON pela rede BLE
 
 void configurateBLE()
 {
-  Serial.begin(9600);
   Serial.println("Fazendo inicializacao do beacon...");
 
   /* Cria e configura um device e server BLE */
@@ -70,9 +69,10 @@ void searchDevicesBLE()
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   pBLEScan->setActiveScan(true);
   pBLEScan->start(5);
-  //pBLEScan->setInterval(mSeconds);
-  //BLEScanResults foundDevices = pBLEScan->start(5);
-/*   Serial.print("foundDevices -> ");
+  /*
+  pBLEScan->setInterval(mSeconds);
+  BLEScanResults foundDevices = pBLEScan->start(5);
+   Serial.print("foundDevices -> ");
   int deviceCount = foundDevices.getCount();
   Serial.println(deviceCount);
   for (uint32_t i = 0; i < deviceCount; i++)
@@ -82,11 +82,12 @@ void searchDevicesBLE()
     Serial.print(i + 1);
     Serial.print(" -> ");
     Serial.println(device.getAddress().toString().c_str());
-    /*   if (strcmp(device.getName(), "Parking") == 0)
+       if (strcmp(device.getName(), "Parking") == 0)
     {
       Serial.print("We found a device named \"Parking\"");
     } 
-  } */
+  } 
+  */
   realTimeData.nDevices = adressesDevicesDetected.size();
   Serial.println("Vector -> ");
   for (int i = 0; i < adressesDevicesDetected.size(); i++)
@@ -114,7 +115,7 @@ void sendJSONBLE()
     pCharacteristic_TX->setValue(auxBytes); //Setting the json to the characteristic
     pCharacteristic_TX->notify();           //Notify the connected client
     Serial.println(auxBytes);
-    delay(500);
+    delay(10);
   }
 
   int REST = responseBody.length() % MAX_SIZE;
@@ -127,10 +128,10 @@ void sendJSONBLE()
     pCharacteristic_TX->setValue(auxBytes); //Setting the json to the characteristic
     pCharacteristic_TX->notify();           //Notify the connected client
     Serial.println(auxBytes);
-    delay(500);
+    delay(10);
   }
 
   pCharacteristic_TX->setValue("OK!");
   pCharacteristic_TX->notify();
-  delay(500);
+  delay(10);
 }

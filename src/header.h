@@ -14,7 +14,7 @@
 #include <sys/time.h> // Recuperação do tempo atual
 #include <freertos/FreeRTOS.h> // (RTOS) Multiprocessamento
 #include <freertos/task.h> // (Tarefas) Multiprocessamento
-#define MAX_SIZE 100 // Tamanho máximo para o particionamento do JSON
+#define MAX_SIZE 500 // Tamanho máximo para o particionamento do JSON
 #define SerialAT Serial1 // Comandos AT
 #define UART_BAUD 9600 // Baud Rate
 #define PIN_DTR 25
@@ -40,7 +40,7 @@ bool sendLAT = false;
 bool sendLONG = false;
 bool sendRealTimeData = false;
 bool updateJSON = false; // indicador de atualização do JSON
-const char server[] = "34.95.187.30";
+const char server[] = "35.199.104.230";
 const char busId[] = "/api/buses/1";
 const char urlRealTimeData[] = "/api/realTimeData/";
 char urlPUTRequest[25];
@@ -83,6 +83,7 @@ struct RealTimeData
     int nDevices;
     GlobalPosition currentPosition;
 };
+
 struct Bus
 {
     int id;
@@ -113,7 +114,6 @@ class MyServerCallbacks : public BLEServerCallbacks
     };
 };
 
-//callback para eventos das características
 class CharacteristicCallbacks_LAT : public BLECharacteristicCallbacks
 {
     void onWrite(BLECharacteristic *characteristic)
@@ -122,7 +122,11 @@ class CharacteristicCallbacks_LAT : public BLECharacteristicCallbacks
         {
             std::string rxValue = characteristic->getValue();
             realTimeData.currentPosition.latitude = ::atof(rxValue.c_str());
+            
+            p2.latitude = p1.latitude;
+            p1.latitude = realTimeData.currentPosition.latitude;
             sendLAT = true;
+            delay(10);
         }
 
     } //onWrite
@@ -136,7 +140,10 @@ class CharacteristicCallbacks_LONG : public BLECharacteristicCallbacks
         {
             std::string rxValue = characteristic->getValue();
             realTimeData.currentPosition.longitude = ::atof(rxValue.c_str());
+            p2.longitude = p1.longitude;
+            p1.longitude = realTimeData.currentPosition.longitude;
             sendLONG = true;
+            delay(10);
         }
 
     } //onWrite

@@ -10,6 +10,7 @@ void getModemInfo(); // Recupera outras informações do modem
 void connectLTEM(); // Conecta-se a rede LTE-M
 void waitConnectionLTEM(); // Aguarda pela conexão LTE-M
 void disconnectLTEM(); // Desconecta-se da rede LTE-M
+void serialATdecode(); // Decodifica comandos AT
 
 void initModem()
 {

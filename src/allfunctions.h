@@ -69,8 +69,11 @@ void savePoints()
 
 bool checkDeviceCoordinates()
 {
-  if ((sendLAT && sendLONG) == true)
+  if ((sendLAT && sendLONG) == true){
+    p2.timestamp = p1.timestamp;
+    p1.timestamp = realTimeData.currentPosition.timestamp;
     return true;
+  }
   else
     return false;
 }

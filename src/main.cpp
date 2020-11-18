@@ -30,15 +30,14 @@ void setup()
   configurateBLE();
   xTaskCreatePinnedToCore(taskLTEM,
                           "taskLTEM",
-                          3600,
+                          4086,
                           NULL,
-                          4,
+                          8,
                           NULL,
                           APP_CPU_NUM);
-
   xTaskCreatePinnedToCore(taskBLE,
                           "taskBLE",
-                          3600,
+                          4086,
                           NULL,
                           8,
                           NULL,
@@ -83,15 +82,9 @@ void taskBLE(void *arg)
     { // Algum dispositivo se conectou a este ônibus (ESP32) ? Se sim, faça:
       if (sendJSON)
       {
-        delay(6000); // Aguardar um pouco para uma conexão estável
+        delay(6000);   // Aguardar um pouco para uma conexão estável
         sendJSONBLE(); // Envia os dados JSON referentes ao onibus para o usuário que se conectou.
         sendJSON = false;
-      }
-      if (checkDeviceCoordinates())
-      {
-        httpPUTRequest();
-        sendLAT = false;
-        sendLONG = false;
       }
     }
     if (countSearchDevice > 600) // com um contador de 600, a condição só sera verdadeira a cada ~1 min
@@ -100,6 +93,7 @@ void taskBLE(void *arg)
       Serial.print("Buscando por dispositivos");
       countSearchDevice = 0;
     }
+
     delay(100);
     countSearchDevice++;
   }
@@ -107,5 +101,16 @@ void taskBLE(void *arg)
 
 void loop()
 {
-  delay(1);
+  if (isBLEDeviceConnected)
+  {
+    if (isLTEMConnected)
+    {
+      if (checkDeviceCoordinates())
+      {
+        sendRealTimeData = true;
+        sendLAT = false;
+        sendLONG = false;
+      }
+    }
+  }
 }
